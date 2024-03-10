@@ -1,3 +1,4 @@
+<img src="github-header-backup.jpg">
 
 ## Sobre Nós
 
