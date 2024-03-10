@@ -1,4 +1,4 @@
-![Kronos Logo](github-header-backup.png)
+<img src="github-header-backup.png">
 
 ## Sobre Nós
 
