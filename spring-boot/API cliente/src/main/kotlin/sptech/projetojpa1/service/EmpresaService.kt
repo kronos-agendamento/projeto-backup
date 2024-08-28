@@ -37,10 +37,10 @@ class EmpresaService(
         return EmpresaResponseDTO(
             codigo = empresa.codigo,
             nome = empresa.nome,
-            contato = empresa.contato,
+            contato = empresa.contato.toString(),
             CNPJ = empresa.CNPJ,
-            enderecoId = empresa.endereco.codigo!!,
-            horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+            endereco = empresa.endereco,
+            horarioFuncionamento = empresa.horarioFuncionamento
         )
     }
 
@@ -55,10 +55,10 @@ class EmpresaService(
             EmpresaResponseDTO(
                 codigo = empresa.codigo,
                 nome = empresa.nome,
-                contato = empresa.contato,
+                contato = empresa.contato.toString(),
                 CNPJ = empresa.CNPJ,
-                enderecoId = empresa.endereco.codigo!!,
-                horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+                endereco = empresa.endereco,
+                horarioFuncionamento = empresa.horarioFuncionamento
             )
         }
     }
@@ -69,10 +69,10 @@ class EmpresaService(
             EmpresaResponseDTO(
                 codigo = empresa.codigo,
                 nome = empresa.nome,
-                contato = empresa.contato,
+                contato = empresa.contato.toString(),
                 CNPJ = empresa.CNPJ,
-                enderecoId = empresa.endereco.codigo!!,
-                horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+                endereco = empresa.endereco,
+                horarioFuncionamento = empresa.horarioFuncionamento
             )
         }
     }
@@ -83,10 +83,10 @@ class EmpresaService(
             EmpresaResponseDTO(
                 codigo = empresa.codigo,
                 nome = empresa.nome,
-                contato = empresa.contato,
+                contato = empresa.contato.toString(),
                 CNPJ = empresa.CNPJ,
-                enderecoId = empresa.endereco.codigo!!,
-                horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+                endereco = empresa.endereco,
+                horarioFuncionamento = empresa.horarioFuncionamento
             )
         }
     }
@@ -95,7 +95,7 @@ class EmpresaService(
         val empresa = empresaRepository.buscarPeloNomeIgnoreCase(nome) ?: return null
         dto.nome?.let { empresa.nome = it }
         dto.contato?.let { empresa.contato = it }
-        dto.CNPJ?.let { empresa.CNPJ = it }
+        dto.cnpj?.let { empresa.CNPJ = it }
         dto.enderecoId?.let {
             val endereco = enderecoRepository.findById(it)
                 .orElseThrow { IllegalArgumentException("Endereço não encontrado") }
@@ -110,10 +110,10 @@ class EmpresaService(
         return EmpresaResponseDTO(
             codigo = empresa.codigo,
             nome = empresa.nome,
-            contato = empresa.contato,
+            contato = empresa.contato.toString(),
             CNPJ = empresa.CNPJ,
-            enderecoId = empresa.endereco.codigo!!,
-            horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+            endereco = empresa.endereco,
+            horarioFuncionamento = empresa.horarioFuncionamento
         )
     }
 
@@ -128,10 +128,10 @@ class EmpresaService(
         return EmpresaResponseDTO(
             codigo = empresa.codigo,
             nome = empresa.nome,
-            contato = empresa.contato,
+            contato = empresa.contato.toString(),
             CNPJ = empresa.CNPJ,
-            enderecoId = empresa.endereco.codigo!!,
-            horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+            endereco = empresa.endereco,
+            horarioFuncionamento = empresa.horarioFuncionamento
         )
     }
 
@@ -146,10 +146,42 @@ class EmpresaService(
         return EmpresaResponseDTO(
             codigo = empresa.codigo,
             nome = empresa.nome,
-            contato = empresa.contato,
+            contato = empresa.contato.toString(),
             CNPJ = empresa.CNPJ,
-            enderecoId = empresa.endereco.codigo!!,
-            horarioFuncionamentoId = empresa.horarioFuncionamento?.codigo
+            endereco = empresa.endereco,
+            horarioFuncionamento = empresa.horarioFuncionamento
+        )
+    }
+
+    fun atualizarTodosDadosEmpresa(cnpj: String, dto: EmpresaUpdateDTO): EmpresaResponseDTO? {
+        val empresa = empresaRepository.buscarPeloCNPJ(cnpj) ?: return null
+
+        // Atualiza os campos que não são nulos
+        dto.nome?.let { empresa.nome = it }
+        dto.contato?.let { empresa.contato = it }
+        dto.cnpj?.let { empresa.CNPJ = it }
+        dto.enderecoId?.let {
+            val endereco = enderecoRepository.findById(it)
+                .orElseThrow { IllegalArgumentException("Endereço não encontrado") }
+            empresa.endereco = endereco
+        }
+        dto.horarioFuncionamentoId?.let {
+            val horarioFuncionamento = horarioFuncionamentoRepository.findById(it)
+                .orElseThrow { IllegalArgumentException("Horário de funcionamento não encontrado") }
+            empresa.horarioFuncionamento = horarioFuncionamento
+        }
+
+        // Salva a empresa atualizada
+        empresaRepository.save(empresa)
+
+        // Retorna o DTO de resposta
+        return EmpresaResponseDTO(
+            codigo = empresa.codigo,
+            nome = empresa.nome,
+            contato = empresa.contato.toString(),
+            CNPJ = empresa.CNPJ,
+            endereco = empresa.endereco,
+            horarioFuncionamento = empresa.horarioFuncionamento
         )
     }
 }

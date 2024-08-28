@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter
 import sptech.projetojpa1.dominio.Usuario
 import sptech.projetojpa1.dto.usuario.UsuarioAtualizacaoRequest
 import sptech.projetojpa1.dto.usuario.UsuarioLoginRequest
@@ -45,9 +47,9 @@ class UsuarioController(
             ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
         ]
     )
-    @PatchMapping("/logoff/{cpf}")
-    fun fazerLogoff(@Valid @PathVariable cpf: String): ResponseEntity<String> {
-        val responseMessage = usuarioService.fazerLogoff(cpf)
+    @PatchMapping("/logoff/{id}")
+    fun fazerLogoffPorId(@Valid @PathVariable id: Int): ResponseEntity<String> {
+        val responseMessage = usuarioService.fazerLogoffPorId(id)
         return if (responseMessage.contains("sucesso")) {
             ResponseEntity.status(200).body(responseMessage)
         } else {
@@ -69,7 +71,7 @@ class UsuarioController(
         return ResponseEntity.status(201).body(dto.copy(codigo = novoUsuario.codigo))
     }
 
-    @Operation(summary = "Atualizar usuário")
+    @Operation(summary = "Atualizar usuário por CPF")
     @ApiResponses(
         value = [
             ApiResponse(responseCode = "200", description = "Operação bem-sucedida. Retorna o usuário atualizado"),
@@ -77,12 +79,12 @@ class UsuarioController(
             ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
         ]
     )
-    @PatchMapping("/atualizacao-usuario/{cpf}")
-    fun atualizarUsuario(
+    @PatchMapping("/atualizacao-usuario-por-cpf/{cpf}")
+    fun atualizarUsuarioPorCpf(
         @PathVariable cpf: String,
         @Valid @RequestBody dto: UsuarioAtualizacaoRequest
     ): ResponseEntity<Usuario> {
-        val usuarioAtualizado = usuarioService.atualizarUsuario(cpf, dto)
+        val usuarioAtualizado = usuarioService.atualizarUsuarioPorCpf(cpf, dto)
         return if (usuarioAtualizado != null) {
             ResponseEntity.status(200).body(usuarioAtualizado)
         } else {
@@ -98,9 +100,9 @@ class UsuarioController(
             ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
         ]
     )
-    @DeleteMapping("/exclusao-usuario/{cpf}")
-    fun deletarUsuario(@PathVariable cpf: String): ResponseEntity<String> {
-        val deletado = usuarioService.deletarUsuario(cpf)
+    @DeleteMapping("/exclusao-usuario/{id}")
+    fun deletarUsuarioPorId(@PathVariable id: Int): ResponseEntity<String> {
+        val deletado = usuarioService.deletarUsuarioPorId(id)
         return if (deletado) {
             ResponseEntity.status(200).body("Usuário excluído com sucesso.")
         } else {
@@ -130,6 +132,18 @@ class UsuarioController(
     fun listarTodosUsuarios(): ResponseEntity<List<Usuario>> {
         val usuarios = usuarioService.listarTodosUsuarios()
         return ResponseEntity.ok(usuarios)
+    }
+
+    @GetMapping("/buscar-top3-indicacoes")
+    fun buscarTop3Indicacoes(): ResponseEntity<List<String>>{
+        val resultado = usuarioService.findTop3Indicacoes()
+        return ResponseEntity.ok(resultado)
+    }
+
+    @GetMapping("/buscar-numeros-indicacoes")
+    fun buscarNumerosIndicacoes(): ResponseEntity<List<Int>>{
+        val resultado = usuarioService.buscarNumeroIndicacoes()
+        return ResponseEntity.ok(resultado)
     }
 
     @Operation(summary = "Listar usuários por descrição")
@@ -163,15 +177,14 @@ class UsuarioController(
         value = ["/atualizacao-foto/{codigo}"],
         consumes = ["image/jpeg", "image/png", "image/gif", "image/jpg"]
     )
-    fun atualizarFotoUsuario(@PathVariable codigo: Int, @RequestBody foto: ByteArray): ResponseEntity<Usuario> {
-        val usuario = usuarioService.atualizarFotoUsuario(codigo, foto)
+    fun atualizarFotoUsuario(@PathVariable cpf: String, @RequestBody foto: ByteArray): ResponseEntity<Usuario> {
+        val usuario = usuarioService.atualizarFotoUsuario(cpf, foto)
         return if (usuario != null) {
             ResponseEntity.status(200).body(usuario)
         } else {
             ResponseEntity.status(404).body(null)
         }
     }
-
 
     @Operation(summary = "Buscar foto de usuário")
     @ApiResponses(
@@ -194,6 +207,31 @@ class UsuarioController(
         }
     }
 
+    @Operation(summary = "Upload de foto do usuário")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Foto enviada com sucesso"),
+            ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
+        ]
+    )
+    @PostMapping("/upload-foto/{cpf}")
+    fun uploadFoto(
+        @PathVariable cpf: String,
+        @RequestParam("file") file: MultipartFile
+    ): ResponseEntity<String> {
+        return try {
+            val usuario = usuarioService.atualizarFotoUsuario(cpf, file.bytes)
+            if (usuario != null) {
+                ResponseEntity.status(200).body("Foto enviada com sucesso")
+            } else {
+                ResponseEntity.status(404).body("Usuário não encontrado")
+            }
+        } catch (e: Exception) {
+            ResponseEntity.status(500).body("Erro ao enviar foto: ${e.message}")
+        }
+    }
+
     @Operation(summary = "Listar usuários por CPF")
     @ApiResponses(
         value = [
@@ -202,9 +240,9 @@ class UsuarioController(
             ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
         ]
     )
-    @GetMapping("/buscar-por-cpf/{cpf}")
-    fun getByCPF(@PathVariable cpf: String): ResponseEntity<Usuario> {
-        val usuario = usuarioService.getByCPF(cpf)
+    @GetMapping("/buscar-por-id/{id}")
+    fun getById(@PathVariable id: Int): ResponseEntity<Usuario> {
+        val usuario = usuarioService.getById(id)
         return if (usuario != null) {
             ResponseEntity.ok(usuario)
         } else {
@@ -262,21 +300,39 @@ class UsuarioController(
     }
 
     @GetMapping("/clientes-ativos")
-    fun getClientesAtivosUltimosTresMeses(): ResponseEntity<Double> {
+    fun getClientesAtivosUltimosTresMeses(): ResponseEntity<Int> {
         val numeroClientes = usuarioService.getClientesAtivos()
         return ResponseEntity.ok(numeroClientes)
     }
 
     @GetMapping("/clientes-inativos")
-    fun getClientesInativos(): ResponseEntity<Double> {
+    fun getClientesInativos(): ResponseEntity<Int> {
         val clientes = usuarioService.getClientesInativos()
         return ResponseEntity.ok(clientes)
     }
 
     @GetMapping("/clientes-fidelizados-ultimos-tres-meses")
-    fun getClientesFidelizadosUltimosTresMeses(): ResponseEntity<Double> {
+    fun getClientesFidelizadosUltimosTresMeses(): ResponseEntity<Int> {
         val clientes = usuarioService.getClientesFidelizadosUltimosTresMeses()
         return ResponseEntity.ok(clientes)
+    }
+
+    @Operation(summary = "Listar usuário por CPF")
+    @ApiResponses(
+        value = [
+            ApiResponse(responseCode = "200", description = "Operação bem-sucedida. Retorna o usuário encontrado"),
+            ApiResponse(responseCode = "404", description = "Usuário não encontrado"),
+            ApiResponse(responseCode = "500", description = "Erro interno do servidor. Retorna uma mensagem de erro")
+        ]
+    )
+    @GetMapping("/buscar-por-cpf/{cpf}")
+    fun getByCpf(@PathVariable cpf: String): ResponseEntity<Usuario> {
+        val usuario = usuarioService.getByCpf(cpf)
+        return if (usuario != null) {
+            ResponseEntity.ok(usuario)
+        } else {
+            ResponseEntity.status(404).body(null)
+        }
     }
 }
 
